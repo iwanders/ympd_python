@@ -1,0 +1,3 @@
+[submodule "ympd"]
+	path = ympd
+	url = git@github.com:iwanders/ympd.git
