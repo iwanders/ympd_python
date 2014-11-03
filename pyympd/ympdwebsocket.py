@@ -256,17 +256,14 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def _MPD_API_SET_PREV(self, payload):
         self.c.previous()
-        self._mpd_song_changed() # don't wait for status update.
 
     def _MPD_API_SET_NEXT(self, payload):
         self.c.next()
-        self._mpd_song_changed() # don't wait for status update.
 
     def _MPD_API_SET_STOP(self, payload):
         self.c.stop()
 
     def _MPD_API_SET_VOLUME(self, payload):
-        print("MPD_API_SET_VOLUME is untested.")
         self.c.setvol(payload)
 
     def _MPD_API_PLAY_TRACK(self, payload):
