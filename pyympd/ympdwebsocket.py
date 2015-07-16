@@ -74,6 +74,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
                         "MPD_API_TOGGLE_RANDOM": self._MPD_API_TOGGLE_RANDOM,
                         "MPD_API_TOGGLE_CONSUME": self._MPD_API_TOGGLE_CONSUME,
                         "MPD_API_TOGGLE_SINGLE": self._MPD_API_TOGGLE_SINGLE,
+                        "MPD_API_TOGGLE_CROSSFADE": self._MPD_API_TOGGLE_CROSSFADE,
                         "MPD_API_TOGGLE_REPEAT": self._MPD_API_TOGGLE_REPEAT,
                         }
         if command in command_list:
@@ -117,6 +118,9 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def mpd_toggle_repeat(self):
         self.c.repeat(0 if self.c.status()['repeat'] == '1' else 1)
+
+    def mpd_toggle_crossfade(self):
+        self.c.crossfade(0 if self.c.status()['xfade'] == '1' else 1)
 
     def mpd_toggle_consume(self):
         self.c.consume(0 if self.c.status()['consume'] == '1' else 1)
@@ -269,6 +273,9 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
     def _MPD_API_PLAY_TRACK(self, payload):
         self.c.playid(int(payload))
 
+    def _MPD_API_TOGGLE_CROSSFADE(self, payload):
+        self.mpd_toggle_crossfade()
+
     def _MPD_API_TOGGLE_REPEAT(self, payload):
         self.mpd_toggle_repeat()
 
@@ -313,11 +320,13 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
     def _MPD_EMIT_STATUS(self):
         # print("pushing status")
         status = self.mpd_status
+        print(status)
         currentsong = self.c.currentsong()
         state_data = {"state": MPD_PLAYBACK_STATE[status["state"]],
                     "volume": int(status["volume"]),
                     "repeat": int(status["repeat"]),
                     "single": int(status["single"]),
+                    "crossfade": int(status["xfade"]),
                     "consume": int(status["consume"]),
                     "random": int(status["random"])}
 
