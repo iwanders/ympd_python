@@ -232,6 +232,9 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
                     new_data.append({"type": "song", "uri": j["file"],
                                     "duration": int(j["time"]),
                                     "title": os.path.basename(j["file"])})
+            if("playlist" in j):
+                new_data.append({"type": "playlist", "plist": j["playlist"]})
+                
         return_value = {"type": "browse", "data": new_data}
         # print(return_value)
         self.send(json.dumps(return_value))
@@ -320,7 +323,6 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
     def _MPD_EMIT_STATUS(self):
         # print("pushing status")
         status = self.mpd_status
-        print(status)
         currentsong = self.c.currentsong()
         state_data = {"state": MPD_PLAYBACK_STATE[status["state"]],
                     "volume": int(status["volume"]),
