@@ -39,6 +39,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         self.pacemaker = False
         self.status_period = self.DEFAULT_STATUS_PERIOD
 
+
         # self.mpd_status = self.c.status()
         self.mpd_status = {}
         self.mpd_status["songid"] = -1
@@ -242,12 +243,14 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
     def _MPD_API_ADD_TRACK(self, payload):
         # adds track to playlist.
         self.c.add(payload)
+        self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_ADD_PLAY_TRACK(self, payload):
         # adds track to playlist.
         id = self.c.addid(payload)
         self.c.playid(id)
         self._mpd_song_changed()
+        self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_RM_TRACK(self, payload):
         # adds track to playlist.
@@ -275,6 +278,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def _MPD_API_PLAY_TRACK(self, payload):
         self.c.playid(int(payload))
+        self._mpd_song_changed()
 
     def _MPD_API_TOGGLE_CROSSFADE(self, payload):
         self.mpd_toggle_crossfade()
@@ -338,7 +342,8 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             active_song = {"elapsedTime": int(float(status["elapsed"])),
                         "currentsongid": int(status["songid"]),
                         "songpos": int(currentsong["pos"]),
-                        "totalTime": int(currentsong["time"])}
+                        "totalTime": int(currentsong["time"]) if "time" in
+                                            currentsong else 0}
         else:
             # there is no song 'active'
             active_song = {"elapsedTime": 0,
