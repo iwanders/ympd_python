@@ -1,5 +1,6 @@
 import cherrypy
 import os
+import sys
 
 from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.manager import WebSocketManager
@@ -36,6 +37,12 @@ def start_cherrypy_debug_server(htdocs_path,
     # set cherrypy configuration.
     cherrypy.config.update({'server.socket_port': http_port})
     cherrypy.config.update({'server.socket_host': http_host})
+
+    if (not os.path.isdir(htdocs_path)):
+        print("=" * 80 + """
+  The ympd htdocs dir is not available: perhaps the git submodule is missing?
+"""+ "=" * 80)
+        sys.exit(1)
 
     # Add the websocket requirements.
     a = WebSocketPlugin(cherrypy.engine)
