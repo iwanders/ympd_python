@@ -1,11 +1,11 @@
 import ws4py
 import ws4py.websocket
-import mpd # https://pypi.python.org/pypi/python-mpd2/
+import mpd  # https://pypi.python.org/pypi/python-mpd2/
 import json
 import threading
 import time
-import os # for os.path
-import socket# for socket.error
+import os
+import socket
 import errno
 
 # this file should not include webserver like modules. (Cherrypy, asyncio, etc)
@@ -16,16 +16,20 @@ MPD_PLAYBACK_STATE = {"unknown": 0, "stop": 1, "play": 2, "pause": 3}
 
 
 class ympdWebSocket(ws4py.websocket.WebSocket):
-    #define MAX_SIZE 1024 * 100
-    #define MAX_ELEMENTS_PER_PAGE 512
-    MAX_ELEMENTS_PER_PAGE = 512 # from the ympd server.
 
-    DEFAULT_STATUS_PERIOD = 0.1 # update interval between unsolicited status.
+    # define MAX_SIZE 1024 * 100
+    # define MAX_ELEMENTS_PER_PAGE 512
+    MAX_ELEMENTS_PER_PAGE = 512  # from the ympd server.
+
+    DEFAULT_STATUS_PERIOD = 0.1  # update interval between unsolicited status.
 
     def __init__(self, mpd_host, mpd_port, mpd_password=None,
-                    *args, **kwargs):
-        print("Websocket spawned for: {}:{} (password: {})".format(mpd_host,
-                                                    mpd_port, mpd_password))
+                 *args, **kwargs):
+        print(
+            "Websocket spawned for: {}:{} (password: {})".format(
+                mpd_host,
+                mpd_port,
+                mpd_password))
 
         # call the super class to initiate websocket stuffs.
         super(ympdWebSocket, self).__init__(*args, **kwargs)
@@ -39,8 +43,6 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         self.pacemaker = False
         self.status_period = self.DEFAULT_STATUS_PERIOD
 
-
-        # self.mpd_status = self.c.status()
         self.mpd_status = {}
         self.mpd_status["songid"] = -1
 
@@ -49,35 +51,34 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def received_message(self, message):
         # called when we receive a message.
-        #self.send(message.data, message.is_binary)
         command, payload = self.parse_command(message)
         command_list = {
-                        "MPD_API_GET_QUEUE": self._MPD_API_GET_QUEUE,
-                        "MPD_API_GET_BROWSE": self._MPD_API_GET_BROWSE,
-                        # MPD_API_GET_MPDHOST
-                        "MPD_API_ADD_TRACK": self._MPD_API_ADD_TRACK,
-                        "MPD_API_ADD_PLAY_TRACK": self._MPD_API_ADD_PLAY_TRACK,
-                        "MPD_API_ADD_PLAYLIST": self._MPD_API_ADD_PLAYLIST,
-                        "MPD_API_PLAY_TRACK": self._MPD_API_PLAY_TRACK,
-                        "MPD_API_RM_TRACK": self._MPD_API_RM_TRACK,
-                        "MPD_API_RM_ALL": self._MPD_API_RM_ALL,
-                        "MPD_API_SEARCH": self._MPD_API_SEARCH,
-                        "MPD_API_SET_VOLUME": self._MPD_API_SET_VOLUME,
-                        "MPD_API_SET_PAUSE": self._MPD_API_SET_PAUSE,
-                        "MPD_API_SET_PLAY": self._MPD_API_SET_PLAY,
-                        "MPD_API_SET_STOP": self._MPD_API_SET_STOP,
-                        "MPD_API_SET_SEEK": self._MPD_API_SET_SEEK,
-                        "MPD_API_SET_NEXT": self._MPD_API_SET_NEXT,
-                        "MPD_API_SET_PREV": self._MPD_API_SET_PREV,
-                        # MPD_API_SET_MPDHOST
-                        # MPD_API_SET_MPDPASS
-                        "MPD_API_UPDATE_DB": self._MPD_API_UPDATE_DB,
-                        "MPD_API_TOGGLE_RANDOM": self._MPD_API_TOGGLE_RANDOM,
-                        "MPD_API_TOGGLE_CONSUME": self._MPD_API_TOGGLE_CONSUME,
-                        "MPD_API_TOGGLE_SINGLE": self._MPD_API_TOGGLE_SINGLE,
-                        "MPD_API_TOGGLE_CROSSFADE": self._MPD_API_TOGGLE_CROSSFADE,
-                        "MPD_API_TOGGLE_REPEAT": self._MPD_API_TOGGLE_REPEAT,
-                        }
+            "MPD_API_GET_QUEUE": self._MPD_API_GET_QUEUE,
+            "MPD_API_GET_BROWSE": self._MPD_API_GET_BROWSE,
+            # MPD_API_GET_MPDHOST
+            "MPD_API_ADD_TRACK": self._MPD_API_ADD_TRACK,
+            "MPD_API_ADD_PLAY_TRACK": self._MPD_API_ADD_PLAY_TRACK,
+            "MPD_API_ADD_PLAYLIST": self._MPD_API_ADD_PLAYLIST,
+            "MPD_API_PLAY_TRACK": self._MPD_API_PLAY_TRACK,
+            "MPD_API_RM_TRACK": self._MPD_API_RM_TRACK,
+            "MPD_API_RM_ALL": self._MPD_API_RM_ALL,
+            "MPD_API_SEARCH": self._MPD_API_SEARCH,
+            "MPD_API_SET_VOLUME": self._MPD_API_SET_VOLUME,
+            "MPD_API_SET_PAUSE": self._MPD_API_SET_PAUSE,
+            "MPD_API_SET_PLAY": self._MPD_API_SET_PLAY,
+            "MPD_API_SET_STOP": self._MPD_API_SET_STOP,
+            "MPD_API_SET_SEEK": self._MPD_API_SET_SEEK,
+            "MPD_API_SET_NEXT": self._MPD_API_SET_NEXT,
+            "MPD_API_SET_PREV": self._MPD_API_SET_PREV,
+            # MPD_API_SET_MPDHOST
+            # MPD_API_SET_MPDPASS
+            "MPD_API_UPDATE_DB": self._MPD_API_UPDATE_DB,
+            "MPD_API_TOGGLE_RANDOM": self._MPD_API_TOGGLE_RANDOM,
+            "MPD_API_TOGGLE_CONSUME": self._MPD_API_TOGGLE_CONSUME,
+            "MPD_API_TOGGLE_SINGLE": self._MPD_API_TOGGLE_SINGLE,
+            "MPD_API_TOGGLE_CROSSFADE": self._MPD_API_TOGGLE_CROSSFADE,
+            "MPD_API_TOGGLE_REPEAT": self._MPD_API_TOGGLE_REPEAT,
+        }
         if command in command_list:
             try:
                 self.mpd_lock.acquire()
@@ -92,7 +93,8 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
         else:
             self.send(json.dumps({"type": "error",
-                            "data": "Unhandled command: {}".format(command)}))
+                                  "data": "Unhandled command: {}".format(
+                                        command)}))
             print("Unhandled command {},{}".format(command, repr(payload)))
 
     def closed(self, code, reason=None):
@@ -171,7 +173,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             self.send(json.dumps({"type": "error", "data": str(e)}))
             print("Destroying this connection")
             # self.close_connection()
-            self.close(1001, "Connection to MPD lost.") # gracefully kill ws.
+            self.close(1001, "Connection to MPD lost.")  # gracefully kill ws.
         finally:
             self.mpd_lock.release()
 
@@ -182,10 +184,9 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             res = {"pos": int(entry["pos"]), "id": int(entry["id"])}
             # Functions to 'fix' various paramters as received from mpd.
             #   key: (fix_function, defaultvalue, [possible names])
-            fix_map = {"duration": (int, 0,
-                                        ["duration", "time"]),
-                        "title": (str, os.path.basename(entry["file"]),
-                                        ["title", "name"])}
+            fix_map = {"duration": (int, 0, ["duration", "time"]),
+                       "title": (str, os.path.basename(entry["file"]),
+                                 ["title", "name"])}
             for k in fix_map.keys():
                 set_key = False
                 for valid_key in fix_map[k][2]:
@@ -194,16 +195,17 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
                     if (valid_key in entry):
                         res[k] = fix_map[k][0](entry[valid_key])
                         set_key = True
-                if (not set_key): # set default.
+                if (not set_key):  # set default.
                     res[k] = fix_map[k][1]
 
             return res
 
         # mpd_put_queue(char *buffer, unsigned int offset)
         index = int(payload)
-        playlist = self.c.playlistinfo((index * self.MAX_ELEMENTS_PER_PAGE,
-                                    (index + 1) * self.MAX_ELEMENTS_PER_PAGE))
-        # print(playlist)
+        playlist = self.c.playlistinfo(
+            (index * self.MAX_ELEMENTS_PER_PAGE,
+             (index + 1) * self.MAX_ELEMENTS_PER_PAGE))
+
         reduced = [fix_metadata(entry) for entry in playlist]
         # return {\"type\":\"queue\",\"data\":[ ".....
         return_value = {"type": "queue", "data": reduced}
@@ -215,7 +217,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         listing = self.c.lsinfo(path)
 
         reduced = listing[page * self.MAX_ELEMENTS_PER_PAGE:
-                                (page + 1) * self.MAX_ELEMENTS_PER_PAGE]
+                          (page + 1) * self.MAX_ELEMENTS_PER_PAGE]
         # print(reduced)
         new_data = []
         for j in reduced:
@@ -227,15 +229,18 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
                 new_data.append({"type": "directory", "dir": j["directory"]})
             if ("file" in j):
                 if ("title" in j):
-                    new_data.append({"type": "song", "uri": j["file"],
-                            "duration": int(j["time"]), "title": j["title"]})
+                    new_data.append({"type": "song",
+                                     "uri": j["file"],
+                                     "duration": int(j["time"]),
+                                     "title": j["title"]})
                 else:
-                    new_data.append({"type": "song", "uri": j["file"],
-                                    "duration": int(j["time"]),
-                                    "title": os.path.basename(j["file"])})
+                    new_data.append({"type": "song",
+                                     "uri": j["file"],
+                                     "duration": int(j["time"]),
+                                     "title": os.path.basename(j["file"])})
             if("playlist" in j):
                 new_data.append({"type": "playlist", "plist": j["playlist"]})
-                
+
         return_value = {"type": "browse", "data": new_data}
         # print(return_value)
         self.send(json.dumps(return_value))
@@ -261,7 +266,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         self._mpd_song_changed()
 
     def _MPD_API_SET_PAUSE(self, payload):
-        self.mpd_toggle_pause() # don't wait for status update.
+        self.mpd_toggle_pause()  # don't wait for status update.
         self._MPD_EMIT_STATUS()
 
     def _MPD_API_SET_PREV(self, payload):
@@ -297,7 +302,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def _MPD_API_RM_ALL(self, payload):
         self.c.clear()
-        self._mpd_song_changed() # don't wait for status update.
+        self._mpd_song_changed()  # don't wait for status update.
         self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_UPDATE_DB(self, payload):
@@ -318,8 +323,8 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             reduced.append({"type": "song",
                             "uri": entry["file"],
                             "duration": entry['time'],
-                            "title": entry['title'] if 'title' in entry\
-                                        else os.path.basename(entry['file'])})
+                            "title": entry['title'] if 'title' in entry
+                            else os.path.basename(entry['file'])})
         return_value = {"type": "search", "data": reduced}
         self.send(json.dumps(return_value))
         pass
@@ -329,27 +334,27 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         status = self.mpd_status
         currentsong = self.c.currentsong()
         state_data = {"state": MPD_PLAYBACK_STATE[status["state"]],
-                    "volume": int(status["volume"]),
-                    "repeat": int(status["repeat"]),
-                    "single": int(status["single"]),
-                    "crossfade": int(status["xfade"]),
-                    "consume": int(status["consume"]),
-                    "random": int(status["random"])}
+                      "volume": int(status["volume"]),
+                      "repeat": int(status["repeat"]),
+                      "single": int(status["single"]),
+                      "crossfade": int(status["xfade"]),
+                      "consume": int(status["consume"]),
+                      "random": int(status["random"])}
 
         # if a a song is in the pause / play, we consider it active.
         if ("pos" in currentsong and "elapsed" in status):
             # a song is active.
             active_song = {"elapsedTime": int(float(status["elapsed"])),
-                        "currentsongid": int(status["songid"]),
-                        "songpos": int(currentsong["pos"]),
-                        "totalTime": int(currentsong["time"]) if "time" in
-                                            currentsong else 0}
+                           "currentsongid": int(status["songid"]),
+                           "songpos": int(currentsong["pos"]),
+                           "totalTime": int(currentsong["time"]) if "time" in
+                           currentsong else 0}
         else:
             # there is no song 'active'
             active_song = {"elapsedTime": 0,
-                            "currentsongid": 0,
-                            "songpos": 0,
-                            "totalTime": 0}
+                           "currentsongid": 0,
+                           "songpos": 0,
+                           "totalTime": 0}
         state_data.update(active_song)
         return_value = {"type": "state", "data": state_data}
         self.send(json.dumps(return_value))
@@ -357,10 +362,10 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
     def _MPD_EMIT_SONG_CHANGE(self):
         currentsong = self.c.currentsong()
         return_value = {"type": "song_change",
-                            "data": {"pos": 0,
-                            "title": " ",
-                            "artist": " ",
-                            "album": " "}}
+                        "data": {"pos": 0,
+                                 "title": " ",
+                                 "artist": " ",
+                                 "album": " "}}
 
         return_value["data"].update(currentsong)
         self.send(json.dumps(return_value))

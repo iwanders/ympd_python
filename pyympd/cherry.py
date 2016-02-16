@@ -41,7 +41,7 @@ def start_cherrypy_debug_server(htdocs_path,
     if (not os.path.isdir(htdocs_path)):
         print("=" * 80 + """
   The ympd htdocs dir is not available: perhaps the git submodule is missing?
-"""+ "=" * 80)
+""" + "=" * 80)
         sys.exit(1)
 
     # Add the websocket requirements.
@@ -57,5 +57,5 @@ def start_cherrypy_debug_server(htdocs_path,
                 '/ws': {'tools.websocket.on': True,
                         'tools.websocket.handler_cls': ympd_websocket},
                 '/': {'tools.staticdir.on': True,
-                    'tools.staticdir.dir': os.path.join(htdocs_path),
-                    "tools.staticdir.index": "index.html"}})
+                      'tools.staticdir.dir': os.path.join(htdocs_path),
+                      "tools.staticdir.index": "index.html"}})
