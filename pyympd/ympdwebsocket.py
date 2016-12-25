@@ -174,6 +174,10 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             print("Destroying this connection")
             # self.close_connection()
             self.close(1001, "Connection to MPD lost.")  # gracefully kill ws.
+        except RuntimeError as e:
+            # Handle beat when socket is already closed.
+            # RuntimeError: Cannot send on a terminated websocket
+            self.shutdown()
         finally:
             self.mpd_lock.release()
 
