@@ -87,7 +87,12 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
                 self.send(json.dumps({"type": "error", "data": str(e)}))
             except mpd.ConnectionError as e:
                 self.mpd_connected = False
-                self.send(json.dumps({"type": "error", "data": str(e)}))
+                print("Destroying this connection")
+                # self.close_connection()
+                try: 
+                    self.send(json.dumps({"type": "error", "data": str(e)}))
+                except socket.error as e:
+                    print("Error during closing ws: {}".format(str(e)))
             finally:
                 self.mpd_lock.release()
 
@@ -101,6 +106,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         # called when we get closed.
         print("Websocket was closed")
         self.shutdown()
+        super(ympdWebSocket, self).closed(code, reason)
 
     def shutdown(self):
         if (self.pacemaker):
@@ -111,6 +117,14 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             self.c.disconnect()
         except mpd.ConnectionError as e:
             print(str(e))
+        except socket.error as e:
+            # Handle beat when socket is already closed.
+            print("While closing, encountered: {}".format(str(e)))
+        finally:
+            # Correctly release this instance.
+            self.server_terminated = True
+            self.close_connection()
+            self.close()
 
     def mpd_toggle_pause(self):
         foo = self.c.status()
@@ -173,7 +187,19 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             self.send(json.dumps({"type": "error", "data": str(e)}))
             print("Destroying this connection")
             # self.close_connection()
-            self.close(1001, "Connection to MPD lost.")  # gracefully kill ws.
+            try: 
+                self.close(1001, "Connection to MPD lost.")  # kill ws.
+            except socket.error as e:
+                print("Error during closing ws: {}".format(str(e)))
+
+        except RuntimeError as e:
+            # Handle beat when socket is already closed.
+            # RuntimeError: Cannot send on a terminated websocket
+            self.shutdown()
+        except socket.error as e:
+            # Handle beat when socket is already closed.
+            # error: [Errno 104] Connection reset by peer
+            self.shutdown()
         finally:
             self.mpd_lock.release()
 
