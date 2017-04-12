@@ -165,6 +165,8 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         if (("songid" in mpd_status) and ("songid" in self.mpd_status)):
             if mpd_status["songid"] != self.mpd_status["songid"]:
                 self._mpd_song_changed()
+        if (not "xfade" in mpd_status):
+           mpd_status["xfade"] = "0"
         self.mpd_status = mpd_status
 
     def _mpd_song_changed(self):
