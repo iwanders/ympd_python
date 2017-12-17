@@ -1,11 +1,5 @@
 import ws4py
 import ws4py.websocket
-import json
-import threading
-import time
-import os
-import socket
-import errno
 
 from .ympd_backend import ympdBackend, Heartbeat
 
