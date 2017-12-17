@@ -55,6 +55,7 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         command_list = {
             "MPD_API_GET_QUEUE": self._MPD_API_GET_QUEUE,
             "MPD_API_GET_BROWSE": self._MPD_API_GET_BROWSE,
+            "MPD_API_GET_OUTPUTS": self._MPD_API_GET_OUTPUTS,
             # MPD_API_GET_MPDHOST
             "MPD_API_ADD_TRACK": self._MPD_API_ADD_TRACK,
             "MPD_API_ADD_PLAY_TRACK": self._MPD_API_ADD_PLAY_TRACK,
@@ -72,12 +73,13 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
             "MPD_API_SET_PREV": self._MPD_API_SET_PREV,
             # MPD_API_SET_MPDHOST
             # MPD_API_SET_MPDPASS
-            "MPD_API_UPDATE_DB": self._MPD_API_UPDATE_DB,
-            "MPD_API_TOGGLE_RANDOM": self._MPD_API_TOGGLE_RANDOM,
             "MPD_API_TOGGLE_CONSUME": self._MPD_API_TOGGLE_CONSUME,
-            "MPD_API_TOGGLE_SINGLE": self._MPD_API_TOGGLE_SINGLE,
             "MPD_API_TOGGLE_CROSSFADE": self._MPD_API_TOGGLE_CROSSFADE,
+            "MPD_API_UPDATE_DB": self._MPD_API_UPDATE_DB,
+            "MPD_API_TOGGLE_OUTPUT": self._MPD_API_TOGGLE_OUTPUT,
+            "MPD_API_TOGGLE_RANDOM": self._MPD_API_TOGGLE_RANDOM,
             "MPD_API_TOGGLE_REPEAT": self._MPD_API_TOGGLE_REPEAT,
+            "MPD_API_TOGGLE_SINGLE": self._MPD_API_TOGGLE_SINGLE,
         }
         if command in command_list:
             try:
@@ -273,6 +275,20 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
         # print(return_value)
         self.send(json.dumps(return_value))
 
+
+    def _mpd_emit_output_states(self):
+        outputs = self.c.outputs()
+        return_value2 = {"type":"outputs", "data":[int(x["outputenabled"]) for x in outputs]} # list of enabled state
+        self.send(json.dumps(return_value2))
+        
+    def _MPD_API_GET_OUTPUTS(self, payload):
+        outputs = self.c.outputs()
+        return_value = {"type":"outputnames", "data":[x["outputname"] for x in outputs]} # list of names
+        return_value2 = {"type":"outputs", "data":[int(x["outputenabled"]) for x in outputs]} # list of enabled state
+        self.send(json.dumps(return_value))
+        self.send(json.dumps(return_value2))
+
+
     def _MPD_API_ADD_TRACK(self, payload):
         # adds track to playlist.
         self.c.add(payload)
@@ -318,6 +334,14 @@ class ympdWebSocket(ws4py.websocket.WebSocket):
 
     def _MPD_API_TOGGLE_REPEAT(self, payload):
         self.mpd_toggle_repeat()
+
+    def _MPD_API_TOGGLE_OUTPUT(self, payload):
+        outputid, enabled = [int(z) for z in payload.split(",")]
+        if (enabled):
+            self.c.enableoutput(outputid)
+        else:
+            self.c.disableoutput(outputid)
+        self._mpd_emit_output_states()
 
     def _MPD_API_TOGGLE_RANDOM(self, payload):
         self.mpd_toggle_random()
