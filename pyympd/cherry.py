@@ -6,7 +6,7 @@ from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
 from ws4py.manager import WebSocketManager
 
 from .ympdwebsocket import ympdWebSocket_wrap
-from .ympd_no_websocket import ympdNoWebSocket
+from .ympd_no_websocket import ympdNoWebSocket, ympdNoWebSocket_wrap
 
 class Root(object):
 
@@ -53,10 +53,10 @@ def start_cherrypy_debug_server(htdocs_path,
     # get a function to instantiate the websocket with the correct settings.
     ympd_websocket = ympdWebSocket_wrap(mpd_host, mpd_port, mpd_password)
 
-    nowebsocket = ympdNoWebSocket(mpd_host, mpd_port, mpd_password, htdocs_path)
+    nowebsocket = ympdNoWebSocket_wrap(mpd_host, mpd_port, mpd_password)
 
     web_root = Root()
-    web_root.nows = nowebsocket
+    web_root.nows = nowebsocket(htdocs_path)
 
     cherrypy.quickstart(web_root, '/', config={
                 '/ws': {'tools.websocket.on': True,
