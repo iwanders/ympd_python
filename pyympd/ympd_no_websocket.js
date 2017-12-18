@@ -6,18 +6,18 @@ var WSA_retry_interval = 3000; // ms, retry interval on connect failure
 var WSA_initial_connect_interval = 10; // ms, duration between creation and connect
 
 function WebSocketAlternative(url) {
-
+    var self = this;
     // These methods will be replaced.
     this.onopen = function(){
         console.log("onopen called while not set.");
-        setTimeout(onclose, WSA_retry_interval);
+        setTimeout(self.onclose, WSA_retry_interval);
     };
     this.onmessage = function(d){
         console.log("onmessage called while not set: " + d);
     };
     this.onclose = function(){
         console.log("onclose called while not set.");
-        setTimeout(onclose, WSA_retry_interval);
+        setTimeout(self.onclose, WSA_retry_interval);
     };
 
     // This passes a list of messages received over the 'websocket' into the
@@ -26,7 +26,7 @@ function WebSocketAlternative(url) {
     {
         // console.log(data);
         $.each(data, function (id, z) {
-            onmessage({data:z});
+            self.onmessage({data:z});
         });
     }
 
@@ -35,12 +35,12 @@ function WebSocketAlternative(url) {
         $.ajax({
             type: "POST",
             contentType : 'application/json',
-            url: this._url,
+            url: self._url,
             data: JSON.stringify({ws_msg:req}),
             dataType: 'json',
-        }).success(ws_response_handler)
+        }).success(self.ws_response_handler)
         .fail(function() {
-            got_disconnected();
+            self.got_disconnected();
         });
     };
 
@@ -49,21 +49,21 @@ function WebSocketAlternative(url) {
     this.got_disconnected = function()
     {
         console.log("Got disconnected!");
-        _state = "disconnected";
-        clearInterval(updater);
+        self._state = "disconnected";
+        clearInterval(self.updater);
 
         // call retry after the retry interval.
-        setTimeout(onclose, WSA_retry_interval);
+        setTimeout(self.onclose, WSA_retry_interval);
     }
 
     // We have established a connection, tell the registered onopen method
     // that we did that, and set the poll interval.
     this.connection_established = function()
     {
-        _state = "connected";
-        onopen();
-        clearInterval(updater);
-        updater = setInterval(function () {this.update();}, WSA_poll_interval);
+        self._state = "connected";
+        self.onopen();
+        clearInterval(self.updater);
+        self.updater = setInterval(function () {self.update();}, WSA_poll_interval);
     }
 
     // If not connected, this method attempts to connect.
@@ -71,36 +71,36 @@ function WebSocketAlternative(url) {
     // the endpoint to send the status, normally done by the pacemaker.
     this.update = function()
     {
-        if (_state == "not_connected")
+        if (self._state == "not_connected")
         {
             $.ajax({
                 type: "POST",
                 contentType : 'application/json',
-                url: this._url,
+                url: self._url,
                 data: JSON.stringify({ws_open:""}),  // send 'open'
                 dataType: 'json',
             }).success(function(data) {
-                connection_established();  // start the application / set opened state
-                ws_response_handler(data);  // process the first messages.
+                self.connection_established();  // start the application / set opened state
+                self.ws_response_handler(data);  // process the first messages.
             }).fail(function (){
-                got_disconnected();  // something went wrong.
+                self.got_disconnected();  // something went wrong.
             });
             return;
         }
-        if (_state == "connected")
+        if (self._state == "connected")
         {
             $.ajax({
                 type: "POST",
                 contentType : 'application/json',
-                url: this._url,
+                url: self._url,
                 data: JSON.stringify({cmd_beat:[]}), // send 'beat'
                 dataType: 'json',
-            }).success(ws_response_handler)
+            }).success(self.ws_response_handler)
             .fail(function() {
-                got_disconnected();
+                self.got_disconnected();
             });
         }
-        if (_state == "disconnected")
+        if (self._state == "disconnected")
         {
             console.log("Update called before update loop was killed.");
         }
@@ -111,15 +111,14 @@ function WebSocketAlternative(url) {
     var pcol = "http";
     var url = pcol + url.substr(2);
 
-    this._url = url;
-    this._state = "not_connected";
+    self._url = url;
+    self._state = "not_connected";
 
     // Initial connect interval sets time between creation of this object and
     // the first call of update = the connection phase.
     // This can be short, but needs to be long enough for the methods to be set.
     // can be practically zero.
-    this.updater = setInterval(function () {
-        this.update();
+    self.updater = setInterval(function () {
+        self.update();
     }, WSA_initial_connect_interval);
-    return this;
 };

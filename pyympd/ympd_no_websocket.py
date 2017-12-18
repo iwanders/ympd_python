@@ -38,7 +38,7 @@ class websocketAlternative:
         d = d.replace(insert_here, payload + "\n" + insert_here)
 
         # ensure the websocket alternative is used:
-        d = d.replace("new WebSocket", "WebSocketAlternative")
+        d = d.replace("new WebSocket", "new WebSocketAlternative")
         return d
     mpd_js.exposed = True
 
