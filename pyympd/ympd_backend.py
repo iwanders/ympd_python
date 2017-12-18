@@ -43,7 +43,7 @@ class ympdBackend(object):
         self.mpd_status = {}
         self.mpd_status["songid"] = -1
 
-        self.mpd_lock = threading.Lock()
+        self.mpd_lock = threading.RLock()
         self.mpd_connect()
 
     def received_message(self, message):
@@ -126,26 +126,32 @@ class ympdBackend(object):
             self.close()
 
     def mpd_toggle_pause(self):
-        foo = self.c.status()
-        if (foo["state"] == "play"):
-            self.c.pause(1)
-        elif (foo["state"] == "pause"):
-            self.c.pause(0)
+        with self.mpd_lock:
+            foo = self.c.status()
+            if (foo["state"] == "play"):
+                self.c.pause(1)
+            elif (foo["state"] == "pause"):
+                self.c.pause(0)
 
     def mpd_toggle_repeat(self):
-        self.c.repeat(0 if self.c.status()['repeat'] == '1' else 1)
+        with self.mpd_lock:
+            self.c.repeat(0 if self.c.status()['repeat'] == '1' else 1)
 
     def mpd_toggle_crossfade(self):
-        self.c.crossfade(0 if self.c.status()['xfade'] == '1' else 1)
+        with self.mpd_lock:
+            self.c.crossfade(0 if self.c.status()['xfade'] == '1' else 1)
 
     def mpd_toggle_consume(self):
-        self.c.consume(0 if self.c.status()['consume'] == '1' else 1)
+        with self.mpd_lock:
+            self.c.consume(0 if self.c.status()['consume'] == '1' else 1)
 
     def mpd_toggle_random(self):
-        self.c.random(0 if self.c.status()['random'] == '1' else 1)
+        with self.mpd_lock:
+            self.c.random(0 if self.c.status()['random'] == '1' else 1)
 
     def mpd_toggle_single(self):
-        self.c.single(0 if self.c.status()['single'] == '1' else 1)
+        with self.mpd_lock:
+            self.c.single(0 if self.c.status()['single'] == '1' else 1)
 
     def mpd_connect(self):
         try:
@@ -159,7 +165,8 @@ class ympdBackend(object):
             self.mpd_lock.release()
 
     def _mpd_get_status(self):
-        mpd_status = self.c.status()
+        with self.mpd_lock:
+            mpd_status = self.c.status()
         # print(mpd_status)
         if (("songid" in mpd_status) and ("songid" in self.mpd_status)):
             if mpd_status["songid"] != self.mpd_status["songid"]:

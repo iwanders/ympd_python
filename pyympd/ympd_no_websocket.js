@@ -3,7 +3,7 @@ var WSA_poll_interval = 1000;  // ms, obtain status / heartbeat
 var WSA_retry_interval = 3000; // ms, retry interval on connect failure
 
 // doesn't really seem to be necessary?
-var WSA_initial_connect_interval = 10; // ms, duration between creation and connect
+var WSA_initial_connect_interval = 100; // ms, duration between creation and connect
 
 function WebSocketAlternative(url) {
     var self = this;
