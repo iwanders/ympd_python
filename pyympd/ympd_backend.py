@@ -105,7 +105,7 @@ class ympdBackend(object):
         # called when we get closed.
         print("Websocket was closed")
         self.shutdown()
-        super(ympdWebSocket, self).closed(code, reason)
+        self.closed(code, reason)
 
     def shutdown(self):
         if (self.pacemaker):

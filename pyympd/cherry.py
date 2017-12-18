@@ -50,13 +50,18 @@ def start_cherrypy_debug_server(htdocs_path,
     a.subscribe()
     cherrypy.tools.websocket = WebSocketTool()
 
+
+    web_root = Root()
+
     # get a function to instantiate the websocket with the correct settings.
     ympd_websocket = ympdWebSocket_wrap(mpd_host, mpd_port, mpd_password)
 
+    # Run a no-websocket alternative at http://hostname:port/nows/
     nowebsocket = ympdNoWebSocket_wrap(mpd_host, mpd_port, mpd_password)
-
-    web_root = Root()
     web_root.nows = nowebsocket(htdocs_path)
+    # this implementation uses POST requests communicate.
+    # Takes a little bit longer for the UI to update, but it should get through
+    # firewalls and proxies where the websocket cannot.
 
     cherrypy.quickstart(web_root, '/', config={
                 '/ws': {'tools.websocket.on': True,

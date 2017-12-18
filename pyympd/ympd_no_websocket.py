@@ -16,9 +16,14 @@ class websocketAlternative:
                         # https://stackoverflow.com/a/16398813
                       "tools.staticdir.match": ".*(?<!mpd\.js)$",
                         }
+        # Create a queue to store the to-be-delivered messages in.
         self.msgs = Queue()
 
     def mpd_js(self, *args, **kwargs):
+        """
+            Monkey patch our alternative websocket implementaiton into the
+            mpd.js that's about to be served and used.
+        """
         # get the original javascript.
         with open(os.path.join(self.htdocs_path, "js", "mpd.js")) as f:
             d = f.read()
@@ -41,29 +46,47 @@ class websocketAlternative:
     @cherrypy.tools.json_out()
     @cherrypy.tools.json_in()
     def ws(self):
+        """
+            This is our alternative websocket endpoint.
+            Data is json.
+            Possible options payloads:
+                 - {"ws_msg":msg_data}
+                    As if a frame was transmitted over the websocket.
+                 - {"ws_open":[]}
+                    As if the websocket was just opened, calls beat and
+                    song changed
+                 - {"cmd_beat":[]}
+                    Beats the backend, as a replacement for the threaded
+                    pacemaker the websocket implementation uses.
+            Always returns list of messages:
+                [msg1, msg2, ... , msgN], or [] in case no messages.
+        """
         data = cherrypy.request.json
         if "ws_msg" in data:
             msg = data["ws_msg"]
             self.received_message(msg)
 
         if ("ws_open" in data):
-            pass
+            self._mpd_song_changed()
+            self.beat()
 
-        if ("ws_get" in data):
-            pass
+        if ("cmd_beat" in data):
+            self.beat()
 
-        # Append all the messages.
+        # Append all the messages that are currently available.
         r = []
         while (not self.msgs.empty()):
             r.append(self.msgs.get(False))
-        # r = list(self.msgs)
-        # self.msgs = Queue()
+        # print("Sending {}".format(r))
         return r
     ws.exposed = True
 
+    # used by the backend to send a message over the websocket.
     def send(self, msg):
         self.msgs.put(msg)
 
+    # hook into the dispatcher such that we can return 'self' as dispatcher
+    # for js/mpd.js... The staticdir handles all other files.
     def _cp_dispatch(self, vpath):
         print(vpath)
         if (len(vpath) >= 1) and (vpath[0] == "js") and (vpath[1] == "mpd.js"):
@@ -78,7 +101,6 @@ class ympdNoWebSocket(websocketAlternative, ympdBackend):
         # pass on the mpd information to the backend.
         ympdBackend.__init__(self, mpd_host, mpd_port, mpd_password)
         self.terminated = False
-        print("called")
 
     def closed(self, code, reason=None):
         ympdBackend.shutdown(self)
@@ -90,11 +112,12 @@ class ympdNoWebSocket(websocketAlternative, ympdBackend):
         ympdBackend.received_message(self, message)
 
 def ympdNoWebSocket_wrap(mpd_host, mpd_port, mpd_password=None):
-    # returns a function which can be instantiated by the webserver to create a
-    # websocket.
+    # returns a function which can be instantiated by the webserver to create
+    # the non-websocket backend.
 
     def foo(*args, **kwargs):
         z = ympdNoWebSocket(mpd_host, mpd_port, mpd_password, *args, **kwargs)
-        z.set_pacemaker(Heartbeat(z))
+        # don't need the pacemaker here, we rely on the javascript for that.
+        # z.set_pacemaker(Heartbeat(z))
         return z
     return foo
