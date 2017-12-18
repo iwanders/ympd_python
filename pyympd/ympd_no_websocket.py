@@ -98,7 +98,7 @@ class websocketAlternative:
     def closed(self, code, reason=None):
         ympdBackend.shutdown(self)
 
-    def close(self):
+    def close(self, code=500, reason=None):
         ympdBackend.shutdown(self)
 
 class ympdNoWebSocket(websocketAlternative, ympdBackend):
