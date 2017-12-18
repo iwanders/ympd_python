@@ -92,6 +92,12 @@ class websocketAlternative:
         if (len(vpath) >= 1) and (vpath[0] == "js") and (vpath[1] == "mpd.js"):
             return self
 
+    def closed(self, code, reason=None):
+        ympdBackend.shutdown(self)
+
+    def close(self):
+        ympdBackend.shutdown(self)
+
 class ympdNoWebSocket(websocketAlternative, ympdBackend):
 
     def __init__(self, mpd_host, mpd_port, mpd_password=None,

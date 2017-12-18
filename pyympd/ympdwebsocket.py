@@ -15,6 +15,10 @@ class ympdWebSocket(ws4py.websocket.WebSocket, ympdBackend):
         ympdBackend.shutdown(self)
         ws4py.websocket.WebSocket.closed(self, code, reason)
 
+    def close(self):
+        ympdBackend.shutdown(self)
+        ws4py.websocket.WebSocket.close(self, 500, "close")
+
     def received_message(self, message):
         # pass this through to the backend
         ympdBackend.received_message(self, message)
