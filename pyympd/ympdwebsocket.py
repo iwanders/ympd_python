@@ -11,12 +11,9 @@ class ympdWebSocket(ws4py.websocket.WebSocket, ympdBackend):
         # pass on the mpd information to the backend.
         ympdBackend.__init__(self, mpd_host, mpd_port, mpd_password)
 
+    # websocket was closed from remote end.
     def closed(self, code, reason=None):
         ympdBackend.shutdown(self)
-        # ws4py.websocket.WebSocket.closed(self, code, reason)
-
-    def close(self, code=500, reason=None):
-        ws4py.websocket.WebSocket.close(self, code, reason)
 
     def received_message(self, message):
         # pass this through to the backend

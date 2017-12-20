@@ -24,7 +24,7 @@ class websocketAlternative:
 
     def mpd_js(self, *args, **kwargs):
         """
-            Monkey patch our alternative websocket implementaiton into the
+            Monkey patch our alternative websocket implementation into the
             mpd.js that's about to be served and used.
         """
         # get the original javascript.
@@ -65,15 +65,18 @@ class websocketAlternative:
                 [msg1, msg2, ... , msgN], or [] in case no messages.
         """
         data = cherrypy.request.json
-        if "ws_msg" in data:
+
+        self.mpd_ensure_connection()
+
+        if "ws_msg" in data and self.is_connected():
             msg = data["ws_msg"]
             self.received_message(msg)
 
-        if ("ws_open" in data):
+        if ("ws_open" in data) and self.is_connected():
             self._mpd_song_changed()
             self.beat()
 
-        if ("cmd_beat" in data):
+        if ("cmd_beat" in data) and self.is_connected():
             self.beat()
 
         # Append all the messages that are currently available.
@@ -95,11 +98,13 @@ class websocketAlternative:
         if (len(vpath) >= 1) and (vpath[0] == "js") and (vpath[1] == "mpd.js"):
             return self
 
-    def closed(self, code, reason=None):
-        ympdBackend.shutdown(self)
-
+    # when proactively closed, but we cannot really relay this message to the
+    # client...
     def close(self, code=500, reason=None):
         ympdBackend.shutdown(self)
+
+    def close_connection(self):
+        pass
 
 class ympdNoWebSocket(websocketAlternative, ympdBackend):
 

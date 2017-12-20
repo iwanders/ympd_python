@@ -125,6 +125,16 @@ class ympdBackend(object):
             self.close_connection()
             self.close()
 
+    def is_connected(self):
+        with self.mpd_lock:
+            try:
+                res = self.c.ping()
+                return True
+            except mpd.ConnectionError as e:
+                # print(str(e))
+                return False
+        
+
     def mpd_toggle_pause(self):
         with self.mpd_lock:
             foo = self.c.status()
@@ -163,6 +173,10 @@ class ympdBackend(object):
             self.send(json.dumps({"type": "error", "data": str(e)}))
         finally:
             self.mpd_lock.release()
+
+    def mpd_ensure_connection(self):
+        if (not self.is_connected()):
+            self.mpd_connect()
 
     def _mpd_get_status(self):
         with self.mpd_lock:
