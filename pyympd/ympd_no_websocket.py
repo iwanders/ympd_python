@@ -71,6 +71,9 @@ class websocketAlternative:
         if "ws_msg" in data and self.is_connected():
             msg = data["ws_msg"]
             self.received_message(msg)
+            # Always beat, this ensures that the status is always sent to the
+            # remote endpoint after a change has been made.
+            self.beat()
 
         if ("ws_open" in data) and self.is_connected():
             self._mpd_song_changed()
@@ -101,7 +104,7 @@ class websocketAlternative:
     # when proactively closed, but we cannot really relay this message to the
     # client...
     def close(self, code=500, reason=None):
-        ympdBackend.shutdown(self)
+        pass
 
     def close_connection(self):
         pass

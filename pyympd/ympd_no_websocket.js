@@ -2,7 +2,6 @@
 var WSA_poll_interval = 1000;  // ms, obtain status / heartbeat
 var WSA_retry_interval = 3000; // ms, retry interval on connect failure
 
-// doesn't really seem to be necessary?
 var WSA_initial_connect_interval = 100; // ms, duration between creation and connect
 
 function WebSocketAlternative(url) {
@@ -26,6 +25,14 @@ function WebSocketAlternative(url) {
     {
         // console.log(data);
         $.each(data, function (id, z) {
+            // console.log(z)
+            // console.log(z.type == "error");
+            var p = JSON.parse(z);
+            if ((p.type == "error") && (p.data == "[Errno 111] Connection refused"))
+            {
+                console.log("fail");
+                self.got_disconnected();
+            }
             self.onmessage({data:z});
         });
     }
@@ -48,22 +55,28 @@ function WebSocketAlternative(url) {
     // loop and retry after the interval.
     this.got_disconnected = function()
     {
-        console.log("Got disconnected!");
-        self._state = "disconnected";
-        clearInterval(self.updater);
+        if (self._state != "disconnected")
+        {
+            console.log("Got disconnected!");
+            self._state = "disconnected";
+            clearInterval(self.updater);
 
-        // call retry after the retry interval.
-        setTimeout(self.onclose, WSA_retry_interval);
+            // call retry after the retry interval.
+            setTimeout(self.onclose, WSA_retry_interval);
+        }
     }
 
     // We have established a connection, tell the registered onopen method
     // that we did that, and set the poll interval.
     this.connection_established = function()
     {
-        self._state = "connected";
-        self.onopen();
-        clearInterval(self.updater);
-        self.updater = setInterval(function () {self.update();}, WSA_poll_interval);
+        if (self._state == "not_connected")
+        {
+            self._state = "connected";
+            self.onopen();
+            clearInterval(self.updater);
+            self.updater = setInterval(function () {self.update();}, WSA_poll_interval);
+        }
     }
 
     // If not connected, this method attempts to connect.
@@ -79,6 +92,7 @@ function WebSocketAlternative(url) {
                 url: self._url,
                 data: JSON.stringify({ws_open:""}),  // send 'open'
                 dataType: 'json',
+                timeout: WSA_initial_connect_interval, // should more or less ensure only one request in flight.
             }).success(function(data) {
                 self.connection_established();  // start the application / set opened state
                 self.ws_response_handler(data);  // process the first messages.
