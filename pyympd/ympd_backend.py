@@ -130,8 +130,8 @@ class ympdBackend(object):
             try:
                 res = self.c.ping()
                 return True
-            except mpd.ConnectionError as e:
-                # print(str(e))
+            except BaseException as e:
+                print(str(e))
                 return False
         
 
