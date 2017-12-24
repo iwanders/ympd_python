@@ -3,6 +3,7 @@ var WSA_poll_interval = 1000;  // ms, obtain status / heartbeat
 var WSA_retry_interval = 3000; // ms, retry interval on connect failure
 
 var WSA_initial_connect_interval = 100; // ms, duration between creation and connect
+var WSA_open_request_timeout = 5000; // ms, timeout on the open request.
 
 function WebSocketAlternative(url) {
     var self = this;
@@ -84,20 +85,23 @@ function WebSocketAlternative(url) {
     // the endpoint to send the status, normally done by the pacemaker.
     this.update = function()
     {
-        if (self._state == "not_connected")
+        if ((self._state == "not_connected") && (!self._request_in_flight))
         {
+            self._request_in_flight = true;
             $.ajax({
                 type: "POST",
                 contentType : 'application/json',
                 url: self._url,
                 data: JSON.stringify({ws_open:""}),  // send 'open'
                 dataType: 'json',
-                timeout: WSA_initial_connect_interval, // should more or less ensure only one request in flight.
+                timeout: WSA_open_request_timeout,
             }).success(function(data) {
                 self.connection_established();  // start the application / set opened state
                 self.ws_response_handler(data);  // process the first messages.
             }).fail(function (){
                 self.got_disconnected();  // something went wrong.
+            }).always(function() {
+                self._request_in_flight = false;
             });
             return;
         }
@@ -127,6 +131,7 @@ function WebSocketAlternative(url) {
 
     self._url = url;
     self._state = "not_connected";
+    self._request_in_flight = false;
 
     // Initial connect interval sets time between creation of this object and
     // the first call of update = the connection phase.

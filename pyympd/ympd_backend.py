@@ -250,9 +250,10 @@ class ympdBackend(object):
 
         # mpd_put_queue(char *buffer, unsigned int offset)
         index = int(payload)
-        playlist = self.c.playlistinfo(
-            (index * self.MAX_ELEMENTS_PER_PAGE,
-             (index + 1) * self.MAX_ELEMENTS_PER_PAGE))
+        with self.mpd_lock:
+            playlist = self.c.playlistinfo(
+                (index * self.MAX_ELEMENTS_PER_PAGE,
+                 (index + 1) * self.MAX_ELEMENTS_PER_PAGE))
 
         reduced = [fix_metadata(entry) for entry in playlist]
         # return {\"type\":\"queue\",\"data\":[ ".....
@@ -262,7 +263,8 @@ class ympdBackend(object):
     def _MPD_API_GET_BROWSE(self, payload):
         page = int(payload[0:payload.find(',')])
         path = payload[payload.find(',') + 1:]
-        listing = self.c.lsinfo(path)
+        with self.mpd_lock:
+            listing = self.c.lsinfo(path)
 
         reduced = listing[page * self.MAX_ELEMENTS_PER_PAGE:
                           (page + 1) * self.MAX_ELEMENTS_PER_PAGE]
@@ -295,12 +297,14 @@ class ympdBackend(object):
 
 
     def _mpd_emit_output_states(self):
-        outputs = self.c.outputs()
-        return_value2 = {"type":"outputs", "data":[int(x["outputenabled"]) for x in outputs]} # list of enabled state
-        self.send(json.dumps(return_value2))
+        with self.mpd_lock:
+            outputs = self.c.outputs()
+            return_value2 = {"type":"outputs", "data":[int(x["outputenabled"]) for x in outputs]} # list of enabled state
+            self.send(json.dumps(return_value2))
         
     def _MPD_API_GET_OUTPUTS(self, payload):
-        outputs = self.c.outputs()
+        with self.mpd_lock:
+            outputs = self.c.outputs()
         return_value = {"type":"outputnames", "data":[x["outputname"] for x in outputs]} # list of names
         return_value2 = {"type":"outputs", "data":[int(x["outputenabled"]) for x in outputs]} # list of enabled state
         self.send(json.dumps(return_value))
@@ -309,84 +313,105 @@ class ympdBackend(object):
 
     def _MPD_API_ADD_TRACK(self, payload):
         # adds track to playlist.
-        self.c.add(payload)
+        with self.mpd_lock:
+            self.c.add(payload)
         self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_ADD_PLAY_TRACK(self, payload):
         # adds track to playlist.
-        id = self.c.addid(payload)
-        self.c.playid(id)
+        with self.mpd_lock:
+            trackid = self.c.addid(payload)
+            self.c.playid(trackid)
         self._mpd_song_changed()
         self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_RM_TRACK(self, payload):
         # adds track to playlist.
-        self.c.deleteid(payload)
+        with self.mpd_lock:
+            self.c.deleteid(payload)
 
     def _MPD_API_SET_PLAY(self, payload):
-        self.c.play()
+        with self.mpd_lock:
+            self.c.play()
         self._mpd_song_changed()
 
     def _MPD_API_SET_PAUSE(self, payload):
-        self.mpd_toggle_pause()  # don't wait for status update.
+        with self.mpd_lock:
+            self.mpd_toggle_pause()  # don't wait for status update.
         self._MPD_EMIT_STATUS()
 
     def _MPD_API_SET_PREV(self, payload):
-        self.c.previous()
+        with self.mpd_lock:
+            self.c.previous()
 
     def _MPD_API_SET_NEXT(self, payload):
-        self.c.next()
+        with self.mpd_lock:
+            self.c.next()
 
     def _MPD_API_SET_STOP(self, payload):
-        self.c.stop()
+        with self.mpd_lock:
+            self.c.stop()
 
     def _MPD_API_SET_VOLUME(self, payload):
-        self.c.setvol(payload)
+        with self.mpd_lock:
+            self.c.setvol(payload)
 
     def _MPD_API_PLAY_TRACK(self, payload):
-        self.c.playid(int(payload))
+        with self.mpd_lock:
+            self.c.playid(int(payload))
         self._mpd_song_changed()
 
     def _MPD_API_TOGGLE_CROSSFADE(self, payload):
-        self.mpd_toggle_crossfade()
+        with self.mpd_lock:
+            self.mpd_toggle_crossfade()
 
     def _MPD_API_TOGGLE_REPEAT(self, payload):
-        self.mpd_toggle_repeat()
+        with self.mpd_lock:
+            self.mpd_toggle_repeat()
 
     def _MPD_API_TOGGLE_OUTPUT(self, payload):
         outputid, enabled = [int(z) for z in payload.split(",")]
-        if (enabled):
-            self.c.enableoutput(outputid)
-        else:
-            self.c.disableoutput(outputid)
+        with self.mpd_lock:
+            if (enabled):
+                self.c.enableoutput(outputid)
+            else:
+                self.c.disableoutput(outputid)
         self._mpd_emit_output_states()
 
     def _MPD_API_TOGGLE_RANDOM(self, payload):
-        self.mpd_toggle_random()
+        with self.mpd_lock:
+            self.mpd_toggle_random()
 
     def _MPD_API_TOGGLE_CONSUME(self, payload):
-        self.mpd_toggle_consume()
+        with self.mpd_lock:
+            self.mpd_toggle_consume()
 
     def _MPD_API_TOGGLE_SINGLE(self, payload):
-        self.mpd_toggle_single()
+        with self.mpd_lock:
+            self.mpd_toggle_single()
 
     def _MPD_API_RM_ALL(self, payload):
-        self.c.clear()
+        with self.mpd_lock:
+            self.c.clear()
         self._mpd_song_changed()  # don't wait for status update.
         self._MPD_API_GET_QUEUE(0)
 
     def _MPD_API_UPDATE_DB(self, payload):
-        self.c.update()
+        with self.mpd_lock:
+            self.c.update()
 
     def _MPD_API_ADD_PLAYLIST(self, payload):
-        self.c.load(payload)
+        with self.mpd_lock:
+            self.c.load(payload)
 
     def _MPD_API_SET_SEEK(self, payload):
         songid, seek = payload.split(',')
-        self.c.seekid(songid, seek)
+        with self.mpd_lock:
+            self.c.seekid(songid, seek)
 
     def _MPD_API_SEARCH(self, payload):
-        res = self.c.search("any", payload)
+        with self.mpd_lock:
+            res = self.c.search("any", payload)
 
         reduced = []
         for entry in res:
@@ -402,7 +427,8 @@ class ympdBackend(object):
     def _MPD_EMIT_STATUS(self):
         # print("pushing status")
         status = self.mpd_status
-        currentsong = self.c.currentsong()
+        with self.mpd_lock:
+            currentsong = self.c.currentsong()
         state_data = {"state": MPD_PLAYBACK_STATE[status["state"]],
                       "volume": int(status["volume"]),
                       "repeat": int(status["repeat"]),
@@ -430,7 +456,8 @@ class ympdBackend(object):
         self.send(json.dumps(return_value))
 
     def _MPD_EMIT_SONG_CHANGE(self):
-        currentsong = self.c.currentsong()
+        with self.mpd_lock:
+            currentsong = self.c.currentsong()
         return_value = {"type": "song_change",
                         "data": {"pos": 0,
                                  "title": " ",
