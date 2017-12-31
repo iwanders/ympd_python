@@ -124,6 +124,10 @@ class ympdBackend(object):
             self.server_terminated = True
             self.close_connection()
             self.close()
+            # reset the mpd client, this is because a broken pipe to MPD
+            # causes broken pipe errors, and connecting fails because it
+            # claims to already be connected. So we reset the MPDClient object.
+            self.c = mpd.MPDClient()
 
     def is_connected(self):
         with self.mpd_lock:
@@ -131,7 +135,8 @@ class ympdBackend(object):
                 res = self.c.ping()
                 return True
             except BaseException as e:
-                print(str(e))
+                print("Ping failed: {}".format(str(e)))
+                self.shutdown()
                 return False
         
 
@@ -171,6 +176,8 @@ class ympdBackend(object):
             self.mpd_connected = True
         except socket.error as e:
             self.send(json.dumps({"type": "error", "data": str(e)}))
+        except mpd.ConnectionError as e:
+            print("Connect called while already connected: {}".format(str(e)))
         finally:
             self.mpd_lock.release()
 
