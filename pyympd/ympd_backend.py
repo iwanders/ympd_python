@@ -234,12 +234,13 @@ class ympdBackend(object):
 
     # below follow yMPD thingies.
     def _MPD_API_GET_QUEUE(self, payload):
-
+        def int_via_float(x):
+            return int(float(x))
         def fix_metadata(entry):
-            res = {"pos": int(entry["pos"]), "id": int(entry["id"])}
+            res = {"pos": int_via_float(entry["pos"]), "id": int(entry["id"])}
             # Functions to 'fix' various paramters as received from mpd.
             #   key: (fix_function, defaultvalue, [possible names])
-            fix_map = {"duration": (int, 0, ["duration", "time"]),
+            fix_map = {"duration": (int_via_float, 0, ["duration", "time"]),
                        "title": (str, os.path.basename(entry["file"]),
                                  ["title", "name"])}
             for k in fix_map.keys():
